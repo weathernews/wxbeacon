@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>WxBeaconモニター</title>
+<style>
+body {
+	font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'YuGothic', 'Meiryo', 'VL PGothic', 'MS UI Gothic';
+	font-size: 16px;
+}
+table {
+	width: 100%;
+	border-collapse: collapse;
+	line-height: 260%;
+}
+th, td {
+	padding: 2px;
+}
+tr.underbar > * {
+	border-bottom: 1px solid #808080;
+}
+th {
+	text-align: right;
+}
+td.right {
+	text-align: right;
+}
+td.value {
+	font-family: monospace;
+	min-width: 5em;
+	font-size: 24px;
+}
+td.value.large {
+	font-size: 36px;
+}
+</style>
+</head>
+<body>
+
+<table>
+<tbody>
+<tr><th>現在:</th><td id="now-value" class="right value" colspan="2">0000/00/00 00:00:00</td></tr>
+<tr class="underbar"><th>最終受信:</th><td id="received-value" class="right value" colspan="2">0000/00/00 00:00:00</td></tr>
+<tr><th>気温:</th><td id="temperature-value" class="right value large">00.0</td><td>℃</td></tr>
+<tr><th>気圧:</th><td id="pressure-value" class="right value large">0000.0</td><td>hPa</td></tr>
+<tr><th>湿度:</th><td id="humidity-value" class="right value large">00</td><td>%</td></tr>
+<tr><th>電波強度:</th><td id="rssi-value" class="right value large">-00</td><td>dB</td></tr>
+<tr><th>基準強度:</th><td id="measured-value" class="right value large">-00</td><td>dB</td></tr>
+<tr><th></th><td class="right" colspan="2"><label><input type="checkbox" id="near-beacons-only" checked />近くのビーコン（基準強度以上）のみ表示</label></td></tr>
+</tbody>
+</table>
+
+<script>
+'use strict';
+(() => {
+	const Moment = require('moment');
+	const Electron = require('electron');
+
+	const now = document.querySelector('#now-value');
+	const received = document.querySelector('#received-value');
+	const temperature = document.querySelector('#temperature-value');
+	const pressure = document.querySelector('#pressure-value');
+	const humidity = document.querySelector('#humidity-value');
+	const rssi = document.querySelector('#rssi-value');
+	const measuredPower = document.querySelector('#measured-value');
+	const nearBeaconsOnly = document.querySelector('#near-beacons-only');
+
+	Electron.ipcRenderer.on('wxbeacon', (e, m) => {
+		let d = JSON.parse(m);
+		if (nearBeaconsOnly.checked && d.rssi < d.measuredPower) {
+			return;
+		}
+
+		console.log(d.rawBeacon);
+
+		received.textContent = Moment().format('YYYY/MM/DD hh:mm:ss');
+		temperature.textContent = d.temperature;
+		pressure.textContent = d.pressure;
+		humidity.textContent = d.humidity;
+		rssi.textContent = d.rssi;
+		measuredPower.textContent = d.measuredPower;
+	});
+
+	setTimeout(() => {
+		setInterval(() => {
+			now.textContent = Moment().format('YYYY/MM/DD hh:mm:ss');
+		}, 100);
+	}, new Date().getTime() % 1000);
+})();
+</script>
+</body>
+</html>
